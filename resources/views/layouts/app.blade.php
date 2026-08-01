@@ -340,6 +340,9 @@
                 <a href="{{ route('work-orders.index') }}"><i class="fa-solid fa-clipboard-list"></i> <span>Work Orders</span></a>
             </li>
             @if(in_array(auth()->user()->role ?? '', ['owner', 'cashier']))
+                <li class="nav-item {{ request()->routeIs('inventory.restock*') ? 'active' : '' }}">
+                    <a href="{{ route('inventory.restock') }}"><i class="fa-solid fa-boxes-packing"></i> <span>Restock Gudang</span></a>
+                </li>
                 <li class="nav-item {{ request()->routeIs('payments.bulk') ? 'active' : '' }}">
                     <a href="{{ route('payments.bulk') }}"><i class="fa-solid fa-money-check-dollar"></i> <span>Bulk Payment (Rental)</span></a>
                 </li>

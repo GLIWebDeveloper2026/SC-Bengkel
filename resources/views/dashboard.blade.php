@@ -69,7 +69,7 @@
     </div>
 
     <div class="card">
-        <h3 style="font-size: 16px; margin-bottom: 16px;"><i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b;"></i> Alert Stok Gudang Kritis</h3>
+        <h3 style="font-size: 16px; margin-bottom: 16px;"><i class="fa-solid fa-boxes-stacked" style="color: #60a5fa;"></i> Monitoring Stok Persediaan Gudang (Real-time)</h3>
         <table>
             <thead>
                 <tr>
@@ -80,15 +80,17 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($lowStockParts as $part)
+                @forelse($parts as $part)
                 <tr>
                     <td><code>{{ $part->code }}</code></td>
                     <td><strong>{{ $part->name }}</strong></td>
                     <td>{{ $part->purchase_unit }} / {{ $part->sell_unit }}</td>
-                    <td style="color: #f87171; font-weight: 700;">{{ number_format($part->stock_qty, 2) }} {{ $part->sell_unit }}</td>
+                    <td style="color: {{ $part->stock_qty <= $part->conversion_factor ? '#f87171' : '#34d399' }}; font-weight: 700;">
+                        {{ number_format($part->stock_qty, 2) }} {{ $part->sell_unit }}
+                    </td>
                 </tr>
                 @empty
-                <tr><td colspan="4" style="text-align: center; color: #34d399;">Stok gudang dalam batas aman.</td></tr>
+                <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Belum ada barang persediaan di gudang.</td></tr>
                 @endforelse
             </tbody>
         </table>

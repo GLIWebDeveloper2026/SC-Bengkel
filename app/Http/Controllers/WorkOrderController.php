@@ -88,10 +88,16 @@ class WorkOrderController extends Controller
             'commission_amount' => 'nullable|numeric|min:0',
         ]);
 
-        $this->woService->addLineItem($wo, $validated);
+        try {
+            $this->woService->addLineItem($wo, $validated);
 
-        return redirect()->route('work-orders.show', $wo->id)
-            ->with('success', 'Item berhasil ditambahkan ke Work Order.');
+            return redirect()->route('work-orders.show', $wo->id)
+                ->with('success', 'Item berhasil ditambahkan ke Work Order.');
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->route('work-orders.show', $wo->id)
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
     }
 
     public function requestApproval(Request $request, $id)

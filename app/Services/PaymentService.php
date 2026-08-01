@@ -12,20 +12,24 @@ class PaymentService
     public function processBulkPayment(int $customerId, float $totalPaid, array $invoiceIds, string $paymentMethod = 'CASH'): Payment
     {
         return DB::transaction(function () use ($customerId, $totalPaid, $invoiceIds, $paymentMethod) {
-            $payment = Payment::create([
-                'payment_number' => 'PAY-' . time(),
-                'customer_id'    => $customerId,
-                'total_paid'     => $totalPaid,
-                'payment_method' => $paymentMethod,
-                'payment_date'   => now(),
-            ]);
-
-            $remainingMoney = $totalPaid;
             $invoices = Invoice::whereIn('id', $invoiceIds)
                 ->where('customer_id', $customerId)
                 ->where('status', '!=', 'paid')
                 ->orderBy('id', 'asc')
                 ->get();
+
+            $totalDue = $invoices->sum('balance_due');
+            $actualPaid = min($totalPaid, $totalDue);
+
+            $payment = Payment::create([
+                'payment_number' => 'PAY-' . time(),
+                'customer_id'    => $customerId,
+                'total_paid'     => $actualPaid,
+                'payment_method' => $paymentMethod,
+                'payment_date'   => now(),
+            ]);
+
+            $remainingMoney = $actualPaid;
 
             foreach ($invoices as $invoice) {
                 if ($remainingMoney <= 0) {

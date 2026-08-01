@@ -23,23 +23,39 @@ class WorkOrderService
                 $subtotal = 0;
             }
 
+            // Pre-check inventory stock capacity if item_type is inventory
+            $part = null;
+            if ($data['item_type'] === 'inventory') {
+                if (!empty($data['reference_id'])) {
+                    $part = Part::find($data['reference_id']);
+                }
+                if (!$part && !empty($data['item_name'])) {
+                    $part = Part::where('name', 'LIKE', '%' . $data['item_name'] . '%')
+                        ->orWhere('code', 'LIKE', '%' . $data['item_name'] . '%')
+                        ->first();
+                }
+
+                if ($part && $data['qty'] > $part->stock_qty) {
+                    throw new \InvalidArgumentException("Stok '" . $part->name . "' tidak mencukupi! Sisa stok di gudang hanya " . number_format($part->stock_qty, 2) . " " . $part->sell_unit . ", sedangkan permintaan sebesar " . number_format($data['qty'], 2) . " " . $part->sell_unit . ".");
+                }
+            }
+
             $item = WorkOrderItem::create([
                 'work_order_id'     => $wo->id,
                 'mechanic_id'       => $data['mechanic_id'] ?? null,
                 'item_type'         => $data['item_type'],
-                'reference_id'      => $data['reference_id'] ?? null,
+                'reference_id'      => $part->id ?? ($data['reference_id'] ?? null),
                 'item_name'         => $data['item_name'],
                 'qty'               => $data['qty'],
                 'cost_price'        => $data['cost_price'] ?? 0,
                 'sell_price'        => $data['sell_price'],
-                'commission_amount' => $data['item_type'] === 'service' ? ($data['commission_amount'] ?? 0) : 0,
+                'commission_amount' => in_array($data['item_type'], ['service', 'inventory']) ? ($data['commission_amount'] ?? 0) : 0,
                 'subtotal'          => $subtotal,
             ]);
 
             // Handle stock & scrap inventory behavior per item classifier
-            if ($data['item_type'] === 'inventory' && !empty($data['reference_id'])) {
-                $part = Part::findOrFail($data['reference_id']);
-                $part->decrement('stock_qty', $data['qty']); // Decimal stock deduction (0.8 Liter)
+            if ($data['item_type'] === 'inventory' && $part) {
+                $part->decrement('stock_qty', $data['qty']); // Decimal stock deduction (e.g. 0.8 Liter)
             } elseif ($data['item_type'] === 'trade_in') {
                 ScrapItem::create([
                     'item_name' => $data['item_name'] ?? 'Aki Bekas',

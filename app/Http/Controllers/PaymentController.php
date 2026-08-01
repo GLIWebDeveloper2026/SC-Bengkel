@@ -47,6 +47,15 @@ class PaymentController extends Controller
             'payment_method' => 'required|string',
         ]);
 
+        $maxPayable = Invoice::whereIn('id', $validated['invoice_ids'])
+            ->where('customer_id', $validated['customer_id'])
+            ->where('status', '!=', 'paid')
+            ->sum('balance_due');
+
+        if ($validated['total_paid'] > $maxPayable) {
+            return back()->withInput()->with('error', 'Gagal: Nominal pembayaran (Rp ' . number_format($validated['total_paid'], 0, ',', '.') . ') tidak boleh melebihi total sisa tagihan terpilih (Rp ' . number_format($maxPayable, 0, ',', '.') . ').');
+        }
+
         $payment = $this->paymentService->processBulkPayment(
             $validated['customer_id'],
             $validated['total_paid'],

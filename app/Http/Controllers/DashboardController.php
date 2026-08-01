@@ -18,9 +18,10 @@ class DashboardController extends Controller
 
         $recentWorkOrders = WorkOrder::with(['vehicle.customer'])->latest()->take(5)->get();
         $lowStockParts = Part::whereColumn('stock_qty', '<=', 'conversion_factor')->get();
+        $parts = Part::all();
 
         // Top mechanic generator
-        $topMechanic = WorkOrderItem::where('item_type', 'service')
+        $topMechanic = WorkOrderItem::whereNotNull('mechanic_id')
             ->select('mechanic_id', \DB::raw('SUM(subtotal) as total_revenue'))
             ->groupBy('mechanic_id')
             ->orderByDesc('total_revenue')
@@ -34,6 +35,7 @@ class DashboardController extends Controller
             'totalOutstandingBalance',
             'recentWorkOrders',
             'lowStockParts',
+            'parts',
             'topMechanic'
         ));
     }

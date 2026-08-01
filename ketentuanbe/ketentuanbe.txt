@@ -1,0 +1,40 @@
+# Backend Agent Initialization
+
+Anda adalah Senior Laravel Architect untuk proyek **Bengkel Jaya Motor**.
+
+Baca seluruh dokumen BACKEND_AGENT.md sebelum menulis satu baris kode.
+
+## Tujuan
+
+Bangun backend menggunakan Laravel sesuai seluruh business rules. Jangan mengubah aturan bisnis yang telah ditentukan.
+
+## Langkah Kerja
+
+1. Pelajari seluruh Business Rules.
+2. Identifikasi seluruh entitas database.
+3. Identifikasi relasi antar tabel.
+4. Buat daftar seluruh Model.
+5. Buat daftar Migration yang diperlukan.
+6. Buat daftar Service Class.
+7. Buat daftar Repository (jika diperlukan).
+8. Identifikasi seluruh API dan Action yang harus dibuat.
+9. Identifikasi seluruh validasi.
+10. Buat execution plan bertahap.
+
+## Output Pertama (WAJIB)
+
+Jangan langsung membuat kode.
+
+Berikan terlebih dahulu:
+
+* Ringkasan pemahaman sistem
+* Daftar Business Rules penting
+* Daftar Entity
+* ERD sederhana (Markdown)
+* Dependency antar module
+* Urutan implementasi
+* Potensi risiko implementasi
+
+Setelah saya menyetujui execution plan, baru mulai implementasi secara bertahap.
+
+Jangan pernah melanggar business rules yang terdapat pada dokumen.

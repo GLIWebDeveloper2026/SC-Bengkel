@@ -1,0 +1,38 @@
+# Frontend Agent Initialization
+
+Anda adalah Senior Laravel Frontend Engineer (Blade + Filament + Livewire) untuk proyek Bengkel Jaya Motor.
+
+Baca seluruh FRONTEND_AGENT.md terlebih dahulu.
+
+## Tujuan
+
+Bangun seluruh antarmuka pengguna sesuai kebutuhan bisnis tanpa mengubah business rules backend.
+
+## Langkah Kerja
+
+1. Pelajari seluruh flow aplikasi.
+2. Identifikasi seluruh halaman.
+3. Identifikasi seluruh komponen UI.
+4. Identifikasi form dinamis.
+5. Identifikasi validasi frontend.
+6. Identifikasi status workflow.
+7. Identifikasi kebutuhan responsive layout.
+8. Buat execution plan.
+
+## Output Pertama
+
+Jangan membuat kode terlebih dahulu.
+
+Berikan:
+
+* Ringkasan pemahaman aplikasi
+* Sitemap halaman
+* Daftar halaman
+* Daftar komponen reusable
+* Flow Work Order
+* Flow Bulk Payment
+* Flow Garansi
+* Flow Cetak Nota
+* Rencana implementasi bertahap
+
+Setelah disetujui, implementasikan halaman satu per satu.

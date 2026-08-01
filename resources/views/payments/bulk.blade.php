@@ -71,6 +71,9 @@
             <div class="form-group">
                 <label for="total_paid">Total Uang Diterima (Rp)</label>
                 <input type="number" name="total_paid" id="total_paid" class="form-control" placeholder="Contoh: 700000" required oninput="calculateAllocation()">
+                <div id="overpay-warning" style="color: #f87171; font-size: 12px; margin-top: 6px; display: none;">
+                    <i class="fa-solid fa-circle-xmark"></i> Nominal pembayaran melebihi total sisa tagihan terpilih!
+                </div>
             </div>
 
             <div class="form-group">
@@ -97,7 +100,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-success" style="width: 100%; justify-content: center; margin-top: 20px;" {{ $unpaidInvoices->isEmpty() ? 'disabled' : '' }}>
+            <button type="submit" id="btn-submit-bulk" class="btn btn-success" style="width: 100%; justify-content: center; margin-top: 20px;" {{ $unpaidInvoices->isEmpty() ? 'disabled' : '' }}>
                 <i class="fa-solid fa-floppy-disk"></i> Eksekusi Bulk Payment
             </button>
         </div>
@@ -119,8 +122,19 @@
         });
 
         const paidInput = parseFloat(document.getElementById('total_paid').value || 0);
+        const overpayWarning = document.getElementById('overpay-warning');
+        const submitBtn = document.getElementById('btn-submit-bulk');
+
+        if (paidInput > totalDue && totalDue > 0) {
+            overpayWarning.style.display = 'block';
+            if (submitBtn) submitBtn.disabled = true;
+        } else {
+            overpayWarning.style.display = 'none';
+            if (submitBtn) submitBtn.disabled = (checkboxes.length === 0);
+        }
+
         const allocated = Math.min(paidInput, totalDue);
-        const remaining = totalDue - allocated;
+        const remaining = Math.max(0, totalDue - allocated);
 
         document.getElementById('total-selected-due').innerText = 'Rp ' + totalDue.toLocaleString('id-ID');
         document.getElementById('allocated-money').innerText = 'Rp ' + allocated.toLocaleString('id-ID');

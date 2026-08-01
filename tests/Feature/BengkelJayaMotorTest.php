@@ -242,4 +242,101 @@ class BengkelJayaMotorTest extends TestCase
         $this->assertEquals(0, $warrantyWo->items->first()->sell_price);
         $this->assertEquals(0, $warrantyWo->final_cost);
     }
+
+    /** @test */
+    public function test_bulk_payment_prevents_overpayment_via_controller()
+    {
+        $cashier = User::create(['name' => 'Mbak Rina', 'role' => 'cashier']);
+        $customer = Customer::create(['name' => 'Pak Overpay']);
+        $vehicle = Vehicle::create(['customer_id' => $customer->id, 'plate_number' => 'B 9999 OVER', 'model' => 'Motor Test']);
+        $wo = WorkOrder::create(['wo_number' => 'WO-OVER-01', 'vehicle_id' => $vehicle->id, 'initial_estimate' => 100000, 'final_cost' => 100000]);
+        $invoice = Invoice::create([
+            'invoice_number' => 'INV-OVER-01',
+            'work_order_id'  => $wo->id,
+            'customer_id'    => $customer->id,
+            'total_amount'   => 100000,
+            'paid_amount'    => 0,
+            'balance_due'    => 100000,
+            'status'         => 'unpaid',
+        ]);
+
+        // Attempt to pay 200,000 for a 100,000 due -> Should be rejected by controller
+        $response = $this->actingAs($cashier)->post(route('payments.bulk.process'), [
+            'customer_id'    => $customer->id,
+            'total_paid'     => 200000,
+            'invoice_ids'    => [$invoice->id],
+            'payment_method' => 'CASH',
+        ]);
+
+        $response->assertSessionHas('error');
+        $invoice->refresh();
+        $this->assertEquals(100000, $invoice->balance_due);
+    }
+
+    /** @test */
+    public function test_inventory_item_rejects_exceeding_stock_capacity()
+    {
+        $part = Part::create([
+            'code'              => 'OIL-TEST-CAP',
+            'name'              => 'Oli Test Capacity',
+            'purchase_unit'     => 'Drum',
+            'sell_unit'         => 'Liter',
+            'conversion_factor' => 30,
+            'stock_qty'         => 5.00,
+            'buy_price'         => 100000,
+            'sell_price'        => 50000,
+        ]);
+
+        $customer = Customer::create(['name' => 'Pelanggan Stock Test']);
+        $vehicle  = Vehicle::create(['customer_id' => $customer->id, 'plate_number' => 'B 7777 STK', 'model' => 'Motor Test']);
+        $wo       = WorkOrder::create(['wo_number' => 'WO-STK-01', 'vehicle_id' => $vehicle->id, 'initial_estimate' => 50000, 'final_cost' => 0]);
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        // Attempting to buy 10.00 Liters when stock is only 5.00 Liters -> Expect InvalidArgumentException
+        $this->woService->addLineItem($wo, [
+            'item_type'    => 'inventory',
+            'reference_id' => $part->id,
+            'item_name'    => $part->name,
+            'qty'          => 10.00,
+            'sell_price'   => 50000,
+        ]);
+    }
+
+    /** @test */
+    public function test_inventory_restock_allowed_for_owner_cashier_blocked_for_mechanic()
+    {
+        $part = Part::create([
+            'code'              => 'OIL-RESTOCK-TEST',
+            'name'              => 'Oli Restock Test',
+            'purchase_unit'     => 'Drum',
+            'sell_unit'         => 'Liter',
+            'conversion_factor' => 30,
+            'stock_qty'         => 10.00,
+            'buy_price'         => 100000,
+            'sell_price'        => 50000,
+        ]);
+
+        $owner = User::create(['name' => 'Pak Hendra Test', 'role' => 'owner']);
+        $cashier = User::create(['name' => 'Mbak Rina Test', 'role' => 'cashier']);
+        $mechanic = User::create(['name' => 'Pak Sarno Test', 'role' => 'mechanic']);
+
+        // 1. Mechanic attempt -> Blocked (redirected to dashboard)
+        $mechanicResp = $this->actingAs($mechanic)->get(route('inventory.restock'));
+        $mechanicResp->assertRedirect(route('dashboard'));
+
+        // 2. Cashier attempt -> Allowed
+        $cashierResp = $this->actingAs($cashier)->get(route('inventory.restock'));
+        $cashierResp->assertStatus(200);
+
+        // 3. Owner process restock -> Stock incremented by 30.00 Liters
+        $this->actingAs($owner)->post(route('inventory.restock.process'), [
+            'part_id' => $part->id,
+            'add_qty' => 30.00,
+            'notes'   => 'Restock 1 Drum Oli',
+        ])->assertRedirect(route('inventory.restock'));
+
+        $part->refresh();
+        $this->assertEquals(40.00, $part->stock_qty);
+    }
 }

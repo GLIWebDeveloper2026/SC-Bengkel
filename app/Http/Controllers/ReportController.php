@@ -15,15 +15,20 @@ class ReportController extends Controller
     {
         $mechanics = User::where('role', 'mechanic')->get();
 
-        $commissionData = WorkOrderItem::where('item_type', 'service')
-            ->whereNotNull('mechanic_id')
+        $commissionData = WorkOrderItem::whereNotNull('mechanic_id')
             ->select('mechanic_id', DB::raw('SUM(commission_amount) as total_commission'), DB::raw('COUNT(*) as total_jobs'), DB::raw('SUM(subtotal) as total_revenue'))
             ->groupBy('mechanic_id')
             ->with('mechanic')
             ->orderByDesc('total_revenue')
             ->get();
 
-        return view('reports.commissions', compact('mechanics', 'commissionData'));
+        $commissionLogs = WorkOrderItem::whereNotNull('mechanic_id')
+            ->where('commission_amount', '>', 0)
+            ->with(['mechanic', 'workOrder.vehicle.customer'])
+            ->latest()
+            ->get();
+
+        return view('reports.commissions', compact('mechanics', 'commissionData', 'commissionLogs'));
     }
 
     public function profitLoss()

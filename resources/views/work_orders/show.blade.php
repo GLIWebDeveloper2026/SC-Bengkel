@@ -42,6 +42,7 @@
     <div class="alert alert-warning" style="flex-direction: column; align-items: flex-start; gap: 8px;">
         <div style="font-weight: 700;"><i class="fa-solid fa-bell"></i> MINTA PERSETUJUAN PEKERJAAN TAMBAHAN (Kejadian A)</div>
         <div>Mekanik menemukan kerusakan tambahan: <strong>{{ $log->requested_item_name }}</strong> dengan perkiraan biaya <strong>Rp {{ number_format($log->estimated_cost, 0, ',', '.') }}</strong>.</div>
+        @if((auth()->user()->role ?? '') === 'owner')
         <div style="display: flex; gap: 8px; margin-top: 6px;">
             <form action="{{ route('approvals.respond', $log->id) }}" method="POST" style="display: inline;">
                 @csrf
@@ -59,6 +60,11 @@
                 <button type="submit" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;"><i class="fa-solid fa-hourglass-end"></i> Timeout Bengkel Tutup (Hold)</button>
             </form>
         </div>
+        @else
+        <div style="margin-top: 6px; font-size: 12px; color: var(--text-muted);">
+            <i class="fa-solid fa-lock"></i> Persetujuan hanya dapat diproses oleh Owner (Pak Hendra).
+        </div>
+        @endif
     </div>
     @elseif($log->status === 'TIMEOUT_HOLD')
     <div class="alert alert-danger">
@@ -76,13 +82,17 @@
                 <a href="{{ route('invoices.show', $workOrder->invoice->id) }}" class="btn btn-success" style="padding: 6px 12px; font-size: 12px;">
                     <i class="fa-solid fa-print"></i> Lihat Nota / Invoice
                 </a>
-            @else
+            @elseif(in_array(auth()->user()->role ?? '', ['owner', 'cashier']))
                 <form action="{{ route('work-orders.checkout', $workOrder->id) }}" method="POST">
                     @csrf
                     <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="return confirm('Selesaikan Work Order & Terbitkan Invoice?')">
                         <i class="fa-solid fa-cash-register"></i> Checkout & Terbitkan Nota
                     </button>
                 </form>
+            @else
+                <span class="badge badge-working" style="padding: 6px 12px; font-size: 12px;">
+                    <i class="fa-solid fa-wrench"></i> Mode Mekanik (Proses Pengerjaan)
+                </span>
             @endif
         </div>
 
@@ -150,9 +160,21 @@
                     <label for="item_type">Tipe Classifier Baris</label>
                     <select name="item_type" id="item_type" class="form-control" required onchange="toggleItemTypeForm(this.value)">
                         <option value="service">Jasa Servis (Berkomisi, No-Stok)</option>
-                        <option value="inventory">Suku Cadang Gudang (Potong Stok Desimal)</option>
+                        <option value="inventory">Suku Cadang Gudang (Potong Stok Desimal & Komisi)</option>
                         <option value="direct_purchase">Beli Langsung / Toko Sebelah (Kejadian B)</option>
                         <option value="trade_in">Tukar Tambah Aki Bekas (Diskon Minus & Scrap +1)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="part_select_group" style="display: none;">
+                    <label for="reference_id">Pilih Master Sparepart Gudang</label>
+                    <select name="reference_id" id="reference_id" class="form-control" onchange="onPartSelected(this)">
+                        <option value="">-- Manual / Pilih Barang Gudang --</option>
+                        @foreach($parts as $p)
+                            <option value="{{ $p->id }}" data-name="{{ $p->name }}" data-price="{{ $p->sell_price }}" data-stock="{{ $p->stock_qty }}" data-unit="{{ $p->sell_unit }}">
+                                {{ $p->name }} (Sisa Stok: {{ number_format($p->stock_qty, 2) }} {{ $p->sell_unit }}) — Rp {{ number_format($p->sell_price, 0, ',', '.') }}
+                            </option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -174,7 +196,10 @@
                 <div class="grid-2">
                     <div class="form-group">
                         <label for="qty">Kuantitas (Qty Desimal)</label>
-                        <input type="number" step="0.01" name="qty" id="qty" class="form-control" value="1.00" required>
+                        <input type="number" step="0.01" name="qty" id="qty" class="form-control" value="1.00" required oninput="validateStockCapacity()">
+                        <div id="stock-overdraft-warning" style="color: #f87171; font-size: 11px; margin-top: 4px; display: none;">
+                            <i class="fa-solid fa-circle-xmark"></i> <span id="stock-warning-text">Qty melebihi sisa stok gudang!</span>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="sell_price">Harga Jual (Rp)</label>
@@ -193,7 +218,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;">
+                <button type="submit" id="btn-add-item" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;">
                     <i class="fa-solid fa-check"></i> Tambahkan Baris
                 </button>
             </form>
@@ -225,26 +250,71 @@
         const mechanicGroup = document.getElementById('mechanic_group');
         const costGroup = document.getElementById('cost_price_group');
         const commissionGroup = document.getElementById('commission_group');
+        const partSelectGroup = document.getElementById('part_select_group');
         const sellPrice = document.getElementById('sell_price');
 
         if (type === 'service') {
             mechanicGroup.style.display = 'block';
             costGroup.style.display = 'none';
             commissionGroup.style.display = 'block';
+            partSelectGroup.style.display = 'none';
+        } else if (type === 'inventory') {
+            mechanicGroup.style.display = 'block';
+            costGroup.style.display = 'none';
+            commissionGroup.style.display = 'block';
+            partSelectGroup.style.display = 'block';
         } else if (type === 'direct_purchase') {
             mechanicGroup.style.display = 'none';
             costGroup.style.display = 'block';
             commissionGroup.style.display = 'none';
+            partSelectGroup.style.display = 'none';
         } else if (type === 'trade_in') {
             mechanicGroup.style.display = 'none';
             costGroup.style.display = 'none';
             commissionGroup.style.display = 'none';
+            partSelectGroup.style.display = 'none';
             sellPrice.value = '-20000'; // Default minus trade-in discount
         } else {
             mechanicGroup.style.display = 'none';
             costGroup.style.display = 'none';
             commissionGroup.style.display = 'none';
+            partSelectGroup.style.display = 'none';
         }
+        validateStockCapacity();
+    }
+
+    function validateStockCapacity() {
+        const itemType = document.getElementById('item_type').value;
+        const partSelect = document.getElementById('reference_id');
+        const qtyInput = parseFloat(document.getElementById('qty').value || 0);
+        const warningDiv = document.getElementById('stock-overdraft-warning');
+        const warningText = document.getElementById('stock-warning-text');
+        const submitBtn = document.getElementById('btn-add-item');
+
+        if (itemType === 'inventory' && partSelect && partSelect.selectedIndex > 0) {
+            const option = partSelect.options[partSelect.selectedIndex];
+            const availableStock = parseFloat(option.dataset.stock || 0);
+            const unit = option.dataset.unit || '';
+
+            if (qtyInput > availableStock) {
+                warningText.innerText = 'Qty (' + qtyInput + ') melebihi stok gudang (' + availableStock + ' ' + unit + ')!';
+                warningDiv.style.display = 'block';
+                if (submitBtn) submitBtn.disabled = true;
+                return;
+            }
+        }
+
+        warningDiv.style.display = 'none';
+        if (submitBtn) submitBtn.disabled = false;
+    }
+
+    function onPartSelected(select) {
+        const option = select.options[select.selectedIndex];
+        if (option && option.value) {
+            document.getElementById('item_name').value = option.dataset.name || '';
+            document.getElementById('sell_price').value = option.dataset.price || '';
+        }
+        validateStockCapacity();
     }
 </script>
 @endsection

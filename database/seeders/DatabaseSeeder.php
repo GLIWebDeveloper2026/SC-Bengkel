@@ -104,5 +104,60 @@ class DatabaseSeeder extends Seeder
             'price'                     => 60000.00,
             'default_commission_amount' => 15000.00,
         ]);
+
+        // 4. Seed Initial Demo Work Order for Top Mechanic & Dashboard
+        $demoVehicle = Vehicle::first();
+        if ($demoVehicle) {
+            $wo = \App\Models\WorkOrder::create([
+                'wo_number'        => 'WO-SEED-001',
+                'vehicle_id'       => $demoVehicle->id,
+                'initial_estimate' => 206000.00,
+                'final_cost'       => 206000.00,
+                'status'           => 'completed',
+            ]);
+
+            \App\Models\WorkOrderItem::create([
+                'work_order_id'     => $wo->id,
+                'mechanic_id'       => $sarno->id,
+                'item_type'         => 'service',
+                'item_name'         => 'Jasa Perbaikan Kelistrikan (Pak Sarno)',
+                'qty'               => 1,
+                'sell_price'        => 150000.00,
+                'commission_amount' => 35000.00,
+                'subtotal'          => 150000.00,
+            ]);
+
+            \App\Models\WorkOrderItem::create([
+                'work_order_id'     => $wo->id,
+                'mechanic_id'       => $junior->id,
+                'item_type'         => 'service',
+                'item_name'         => 'Jasa Ganti Oli',
+                'qty'               => 1,
+                'sell_price'        => 20000.00,
+                'commission_amount' => 5000.00,
+                'subtotal'          => 20000.00,
+            ]);
+
+            \App\Models\WorkOrderItem::create([
+                'work_order_id'     => $wo->id,
+                'mechanic_id'       => $junior->id,
+                'item_type'         => 'inventory',
+                'item_name'         => 'Oli Engine Drum (Sell per Liter)',
+                'qty'               => 0.8,
+                'sell_price'        => 45000.00,
+                'commission_amount' => 5000.00,
+                'subtotal'          => 36000.00,
+            ]);
+
+            \App\Models\Invoice::create([
+                'invoice_number' => 'INV-SEED-001',
+                'work_order_id'  => $wo->id,
+                'customer_id'    => $demoVehicle->customer_id,
+                'total_amount'   => 206000.00,
+                'paid_amount'    => 206000.00,
+                'balance_due'    => 0,
+                'status'         => 'paid',
+            ]);
+        }
     }
 }

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WarrantyController;
@@ -46,10 +47,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/payments/bulk', [PaymentController::class, 'processBulk'])->name('payments.bulk.process');
     });
 
-    // Warranty Claims - Owner & Cashier
+    // Warranty Claims & Inventory Restock - Owner & Cashier
     Route::middleware('role:owner,cashier')->group(function () {
         Route::get('/warranty', [WarrantyController::class, 'index'])->name('warranty.index');
         Route::post('/warranty/claim', [WarrantyController::class, 'claim'])->name('warranty.claim');
+        Route::get('/inventory/restock', [InventoryController::class, 'restockForm'])->name('inventory.restock');
+        Route::post('/inventory/restock', [InventoryController::class, 'processRestock'])->name('inventory.restock.process');
     });
 
     // Owner Reports - Owner Only

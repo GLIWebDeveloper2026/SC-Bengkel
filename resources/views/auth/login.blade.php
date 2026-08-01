@@ -387,11 +387,22 @@
                         <div class="demo-info">
                             <div class="demo-avatar mechanic">S</div>
                             <div>
-                                <div class="demo-name">Pak Sarno</div>
+                                <div class="demo-name">Pak Sarno (Senior)</div>
                                 <div class="demo-email">sarno@jayamotor.id</div>
                             </div>
                         </div>
                         <span class="demo-badge badge-mechanic">Mekanik</span>
+                    </button>
+
+                    <button type="button" class="demo-btn" onclick="quickLogin('junior@jayamotor.id', 'password')">
+                        <div class="demo-info">
+                            <div class="demo-avatar mechanic" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">J</div>
+                            <div>
+                                <div class="demo-name">Junior Mechanic</div>
+                                <div class="demo-email">junior@jayamotor.id</div>
+                            </div>
+                        </div>
+                        <span class="demo-badge badge-mechanic" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.4);">Mekanik Jr</span>
                     </button>
                 </div>
             </div>

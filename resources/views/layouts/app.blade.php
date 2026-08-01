@@ -339,26 +339,30 @@
             <li class="nav-item {{ request()->routeIs('work-orders.*') ? 'active' : '' }}">
                 <a href="{{ route('work-orders.index') }}"><i class="fa-solid fa-clipboard-list"></i> <span>Work Orders</span></a>
             </li>
-            <li class="nav-item {{ request()->routeIs('payments.bulk') ? 'active' : '' }}">
-                <a href="{{ route('payments.bulk') }}"><i class="fa-solid fa-money-check-dollar"></i> <span>Bulk Payment (Rental)</span></a>
-            </li>
-            <li class="nav-item {{ request()->routeIs('warranty.index') ? 'active' : '' }}">
-                <a href="{{ route('warranty.index') }}"><i class="fa-solid fa-shield-halved"></i> <span>Garansi 14 Hari</span></a>
-            </li>
+            @if(in_array(auth()->user()->role ?? '', ['owner', 'cashier']))
+                <li class="nav-item {{ request()->routeIs('payments.bulk') ? 'active' : '' }}">
+                    <a href="{{ route('payments.bulk') }}"><i class="fa-solid fa-money-check-dollar"></i> <span>Bulk Payment (Rental)</span></a>
+                </li>
+                <li class="nav-item {{ request()->routeIs('warranty.index') ? 'active' : '' }}">
+                    <a href="{{ route('warranty.index') }}"><i class="fa-solid fa-shield-halved"></i> <span>Garansi 14 Hari</span></a>
+                </li>
+            @endif
         </ul>
 
-        <span class="nav-label">Laporan Owner</span>
-        <ul class="nav-menu">
-            <li class="nav-item {{ request()->routeIs('reports.commissions') ? 'active' : '' }}">
-                <a href="{{ route('reports.commissions') }}"><i class="fa-solid fa-users-gear"></i> <span>Komisi Mekanik</span></a>
-            </li>
-            <li class="nav-item {{ request()->routeIs('reports.profit-loss') ? 'active' : '' }}">
-                <a href="{{ route('reports.profit-loss') }}"><i class="fa-solid fa-file-invoice-dollar"></i> <span>Laba & Rugi</span></a>
-            </li>
-            <li class="nav-item {{ request()->routeIs('reports.scrap') ? 'active' : '' }}">
-                <a href="{{ route('reports.scrap') }}"><i class="fa-solid fa-recycle"></i> <span>Aki Bekas (Scrap)</span></a>
-            </li>
-        </ul>
+        @if((auth()->user()->role ?? '') === 'owner')
+            <span class="nav-label">Laporan Owner</span>
+            <ul class="nav-menu">
+                <li class="nav-item {{ request()->routeIs('reports.commissions') ? 'active' : '' }}">
+                    <a href="{{ route('reports.commissions') }}"><i class="fa-solid fa-users-gear"></i> <span>Komisi Mekanik</span></a>
+                </li>
+                <li class="nav-item {{ request()->routeIs('reports.profit-loss') ? 'active' : '' }}">
+                    <a href="{{ route('reports.profit-loss') }}"><i class="fa-solid fa-file-invoice-dollar"></i> <span>Laba & Rugi</span></a>
+                </li>
+                <li class="nav-item {{ request()->routeIs('reports.scrap') ? 'active' : '' }}">
+                    <a href="{{ route('reports.scrap') }}"><i class="fa-solid fa-recycle"></i> <span>Aki Bekas (Scrap)</span></a>
+                </li>
+            </ul>
+        @endif
     </aside>
 
     <!-- Main Content Wrapper -->
@@ -368,12 +372,32 @@
                 <h1>@yield('title', 'Dashboard')</h1>
                 <p>@yield('subtitle', 'Sistem Manajemen Bengkel & Kasir Terintegrasi')</p>
             </div>
-            <div class="user-badge">
-                <div class="user-avatar">JM</div>
-                <div>
-                    <div style="font-size: 13px; font-weight: 600;">Pak Hendra / Mbak Rina</div>
-                    <div style="font-size: 11px; color: var(--text-muted);">Kasir & Owner Access</div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="user-badge">
+                    <div class="user-avatar">
+                        {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; font-weight: 600;">{{ auth()->user()->name ?? 'User' }}</div>
+                        <div style="font-size: 11px;">
+                            @if((auth()->user()->role ?? '') === 'owner')
+                                <span class="badge" style="background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid #8b5cf6;">Owner</span>
+                            @elseif((auth()->user()->role ?? '') === 'cashier')
+                                <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981;">Kasir</span>
+                            @elseif((auth()->user()->role ?? '') === 'mechanic')
+                                <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b;">Mekanik</span>
+                            @endif
+                        </div>
+                    </div>
                 </div>
+
+                <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
+                    @csrf
+                    <button type="submit" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;" title="Logout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Logout</span>
+                    </button>
+                </form>
             </div>
         </header>
 

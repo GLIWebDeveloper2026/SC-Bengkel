@@ -20,6 +20,7 @@ class ReportController extends Controller
             ->select('mechanic_id', DB::raw('SUM(commission_amount) as total_commission'), DB::raw('COUNT(*) as total_jobs'), DB::raw('SUM(subtotal) as total_revenue'))
             ->groupBy('mechanic_id')
             ->with('mechanic')
+            ->orderByDesc('total_revenue')
             ->get();
 
         return view('reports.commissions', compact('mechanics', 'commissionData'));
@@ -42,10 +43,28 @@ class ReportController extends Controller
 
         $grossProfit = $serviceRevenue + $inventoryRevenue + ($directPurchaseRevenue - $directPurchaseCost) - $totalCommissionsPaid;
 
+        // Top Mechanics Data for Analytics Chart
+        $mechanicStats = WorkOrderItem::where('item_type', 'service')
+            ->whereNotNull('mechanic_id')
+            ->select('mechanic_id', DB::raw('SUM(subtotal) as total_revenue'), DB::raw('SUM(commission_amount) as total_commission'))
+            ->groupBy('mechanic_id')
+            ->with('mechanic')
+            ->orderByDesc('total_revenue')
+            ->get();
+
+        // Top Specific Services Data for Analytics Chart
+        $topServices = WorkOrderItem::where('item_type', 'service')
+            ->select('item_name', DB::raw('SUM(subtotal) as total_revenue'), DB::raw('COUNT(*) as total_count'))
+            ->groupBy('item_name')
+            ->orderByDesc('total_revenue')
+            ->take(5)
+            ->get();
+
         return view('reports.profit_loss', compact(
             'totalRevenue', 'totalPaid', 'totalOutstanding',
             'serviceRevenue', 'inventoryRevenue', 'directPurchaseRevenue',
-            'directPurchaseCost', 'tradeInDiscount', 'totalCommissionsPaid', 'grossProfit'
+            'directPurchaseCost', 'tradeInDiscount', 'totalCommissionsPaid', 'grossProfit',
+            'mechanicStats', 'topServices'
         ));
     }
 
